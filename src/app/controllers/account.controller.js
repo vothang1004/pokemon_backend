@@ -68,11 +68,6 @@ const accountController = {
       if (!title) {
         return res.status(404).json({ message: "Please enter title account" });
       }
-      if (!description) {
-        return res
-          .status(404)
-          .json({ message: "Please enter description account" });
-      }
       if (!price) {
         return res
           .status(404)
