@@ -1,15 +1,60 @@
 const accountModel = require("../models/account.model");
 const imageModel = require("../models/image.model");
 const fs = require("fs");
+const { generateRandomCode } = require("../../utils/myUtil");
 
 const accountController = {
+  async createMaTk() {
+    let randomString = generateRandomCode(6);
+    const isExist = await accountModel.findOne({ ma_tk: randomString });
+    if (isExist) {
+      accountController.createMaTk();
+    } else {
+      return randomString;
+    }
+  },
   async getAll(req, res, next) {
     try {
+      const q = req.query.q;
       const page = req.query.page || 1;
       const limit = req.query.limit || 20;
+      const server = req.query.server || "";
+      const sort = Number(req.query.sort) || 0; // 0: normal; 1: increase; 2: decrease
       const skip = limit * (page - 1);
-      const accounts = await accountModel.find({}).skip(skip).limit(limit);
-      res.status(200).json(accounts);
+
+      let condition = {};
+      if (server) {
+        condition.server = server;
+      }
+      const sortCondition = {};
+      if (sort === 1) {
+        sortCondition.price = "asc";
+      } else if (sort === 2) {
+        sortCondition.price = "desc";
+      }
+
+      if (q) {
+        condition.$or = [];
+        const conditionParse = JSON.parse(q);
+        if (conditionParse.$or.length > 0) {
+          conditionParse.$or.forEach((conditionItem) => {
+            const keys = Object.keys(conditionItem);
+            const values = Object.values(conditionItem);
+            const regex = new RegExp(values[0].$regex, values[0].$options);
+            condition.$or.push({ [keys[0]]: regex });
+          });
+        }
+      }
+
+      const accounts = await accountModel
+        .find(condition)
+        .skip(skip)
+        .limit(limit)
+        .sort(sortCondition)
+        .populate("server");
+      const count = await accountModel.find(condition).count();
+      const totalItem = await accountModel.find({}).count();
+      res.status(200).json({ data: accounts, count, totalItem });
     } catch (error) {
       next(error);
     }
@@ -34,12 +79,15 @@ const accountController = {
           .json({ message: "Please enter description account" });
       }
       const files = req.files;
+      const ma_tk = await accountController.createMaTk();
       const account = new accountModel({
+        ma_tk,
         title,
         description,
         price: Number(req.body.price),
         server: req.body.server,
-        link: req.body.link,
+        link_facebook: req.body.link_facebook,
+        link_zalo: req.body.link_zalo,
         images: files?.map((file) => `/uploads/${file.nameToSave}`),
       });
       await account.save();
@@ -74,10 +122,10 @@ const accountController = {
       next(error);
     }
   },
-  async getById(req, res, next) {
+  async getByMaTk(req, res, next) {
     try {
-      const id = req.params.id;
-      const account = await accountModel.findById(id).populate("server");
+      const ma_tk = req.params.ma_tk;
+      const account = await accountModel.findOne({ ma_tk }).populate("server");
       if (!account) {
         return res.status(404).json({ message: "Account not found" });
       }

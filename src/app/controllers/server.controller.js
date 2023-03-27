@@ -3,8 +3,12 @@ const serverModel = require("../models/server.model");
 const serverController = {
   async getAll(req, res, next) {
     try {
-      const servers = await serverModel.find({});
-      return res.status(200).json(servers);
+      const page = req.query.page || 1;
+      const limit = req.query.limit || 20;
+      const skip = limit * (page - 1);
+      const servers = await serverModel.find({}).skip(skip).limit(limit);
+      const count = await serverModel.find({}).count();
+      return res.status(200).json({ data: servers, count });
     } catch (error) {
       res.statusCode = 500;
       next(error);

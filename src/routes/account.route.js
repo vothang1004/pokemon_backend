@@ -31,7 +31,7 @@ router.put(
   upload.array("images", Infinity),
   accountController.update
 );
-router.get("/:id", accountController.getById);
+router.get("/:ma_tk", accountController.getByMaTk);
 router.delete("/:id", authMiddleWare.verifyToken, accountController.deleteById);
 
 module.exports = router;

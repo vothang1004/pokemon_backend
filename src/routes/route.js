@@ -12,6 +12,7 @@ const initApiRoute = (app) => {
     next(error);
   });
   app.use((err, req, res, next) => {
+    res.statusCode = err.status || 404;
     res.json({
       status: err.status || 404,
       message: err.message,
