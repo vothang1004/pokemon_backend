@@ -163,8 +163,12 @@ const accountController = {
       if (account.images.length > 0) {
         account.images.forEach((image) => {
           const filePath = `src/public/${image}`;
-          fs.unlink(filePath, (err) => {
-            if (err) throw err;
+          fs.access(filePath, (err) => {
+            if (!err) {
+              fs.unlink(filePath, (err) => {
+                if (err) throw err;
+              });
+            }
           });
         });
       }
